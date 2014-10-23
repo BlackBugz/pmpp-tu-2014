@@ -1,8 +1,7 @@
 #include "matrix.h"
 #include "matrixMul_cpu.h"
 
-void
-MatrixMulCPU(const Matrix &M, const Matrix &N, Matrix &P)
+void MatrixMulCPU(const Matrix &M, const Matrix &N, Matrix &P)
 {
 	// TODO: Task 3
 	

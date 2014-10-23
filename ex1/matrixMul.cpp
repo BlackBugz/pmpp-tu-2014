@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <cfloat>
 
 #include <cuda_runtime.h>
 
@@ -19,8 +20,7 @@
 #define P_HEIGHT M_HEIGHT
 
 //----------------------------------------------------------------------------
-void
-printCUDADevices()
+void printCUDADevices()
 {
 	// TODO: Task 2
 
@@ -45,41 +45,13 @@ printCUDADevices()
 	}
 }
 
-void printMatrix(const Matrix m){
-	for(int i = 0; i < m.height; ++i){
-		for(int j = 0; j < m.width; j++){
-			printf("%f ", m.elements[i*m.width+j]);
-		}
-		printf("\n");
-	}
-}
-
-void checkMatrix(const Matrix m){
-	int count = 0;
-	long int c =0;
-	int min = 44444444;
-	for(int i = 0; i < m.height; ++i){
-		for(int j = 0; j < m.width; j++){
-			c +=m.elements[i*m.width+j];
-			if(m.elements[i*m.width+j] != 0){
-				count++;
-			}
-			if(m.elements[i*m.width+j] < min){
-				min = m.elements[i*m.width+j];
-			}
-		}
-	}
-	printf("Sum: %lu - != 0: %i  - min: %i\n", c, count, min);
-}
-
 //----------------------------------------------------------------------------
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	printCUDADevices();
 
-	const int height = 100;
-	const int width = 75;
+	const int height = M_HEIGHT;
+	const int width = M_WIDTH;
 
 	// TODO Task 3: Allocate and initialize CPU matrices
 	Matrix M = AllocateMatrixCPU(width, height, true);
@@ -88,12 +60,16 @@ main(int argc, char **argv)
 	Matrix PP = AllocateMatrixCPU(height, height, false);
 
 	// TODO Task 5: Start CPU timing
+	double startTime = SysGetTime_ms();
 
 	// TODO Task 3: Run matrix multiplication on the CPU
 	MatrixMulCPU(M, N, P);
 	checkMatrix(P);
 
 	// TODO Task 5: Stop CPU timing and print elapsed time
+	double stopTime = SysGetTime_ms();
+	double elapsedTime_CPU = stopTime - startTime;
+	printf("CPU processing took: %f ms\n", elapsedTime_CPU);
 
 	// TODO Task 4: Allocate GPU matrices
 	Matrix MGPU = AllocateMatrixGPU(width, height);
@@ -101,6 +77,10 @@ main(int argc, char **argv)
 	Matrix PGPU = AllocateMatrixGPU(height, height);
 
 	// TODO Task 5: Start GPU timing with CUDA events
+	cudaEvent_t evStart, evStop;
+	cudaEventCreate(&evStart);
+	cudaEventCreate(&evStop);
+	cudaEventRecord(evStart, 0);
 
 	// TODO Task 4: Copy CPU matrices to the GPU
 	CopyToDeviceMatrix(MGPU, M);
@@ -114,8 +94,18 @@ main(int argc, char **argv)
 	checkMatrix(PP);
 
 	// TODO Task 5: Stop GPU timing with CUDA events and print elapsed time
+	cudaEventRecord(evStop, 0);
+	cudaEventSynchronize(evStop);
+
+	float elapsedTime_ms;
+	cudaEventElapsedTime(&elapsedTime_ms, evStart, evStop);
+
+	printf("CUDA processing took: %f ms\n", elapsedTime_ms);
+	cudaEventDestroy(evStart);
+	cudaEventDestroy(evStop);
 
 	// TODO Task 4: Compare CPU and GPU results
+	compareMatrix(PCPU, PGPU);
 
 	// TODO Task 3/4: Clean up
 	FreeMatrixCPU(M);
