@@ -1,1 +1,0 @@
-/usr/bin/c++       CMakeFiles/matrixMul.dir/matrix.cpp.o CMakeFiles/matrixMul.dir/matrixMul_cpu.cpp.o CMakeFiles/matrixMul.dir/matrixMul.cpp.o CMakeFiles/matrixMul.dir/./matrixMul_generated_matrixMul_gpu.cu.o  -o matrixMul -rdynamic /usr/local/cuda-5.0/lib64/libcudart.so -lcuda -Wl,-rpath,/usr/local/cuda-5.0/lib64 
