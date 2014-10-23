@@ -59,6 +59,13 @@ Matrix
 AllocateMatrixGPU(int width, int height)
 {
 	// TODO: Task 4
+	Matrix Mdevice;
+	Mdevice.width = width;
+	Mdevice.height = height;
+
+	cudaMallocPitch((void**)&Mdevice.elements,&Mdevice.pitch, Mdevice.width, Mdevice.height);
+
+	return Mdevice;
 }
 
 //----------------------------------------------------------------------------
@@ -69,5 +76,29 @@ void
 FreeMatrixGPU(Matrix &M)
 {
 	// TODO: Task 4
+	cudaFree(M.elements);
 }
 
+/** \brief Copy a host matrix to a device matrix
+ *	\param Mdevice matrix related to the space allocated on the device
+ *	\param Mhost matrx allocated on the host
+ */
+void 
+ CopyToDeviceMatrix(Matrix Mdevice, const Matrix Mhost)
+ {
+ 	int size = Mhost.width * Mhost.height * sizeof(float);
+ 	cudaMemcpy(Mdevice.elements, Mhost.elements, size, cudaMemcpyHostToDevice);
+ }
+
+/** \brief Copy a device matrix to a host matrix
+ *	\param Mhost matrx allocated on the host
+ *	\param Mdevice matrix related to the space allocated on the device
+ */
+void 
+ CopyToHostMatrix(Matrix Mhost, const Matrix Mdevice)
+ {
+ 	int size = Mdevice.width * Mdevice.height * sizeof(float);
+ 	cudaMemcpy(Mhost.elements, Mdevice.elements, size, cudaMemcpyDeviceToHost);
+ }
+
+ 

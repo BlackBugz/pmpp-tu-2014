@@ -17,4 +17,6 @@ void FreeMatrixCPU(Matrix &M);
 Matrix AllocateMatrixGPU(int width, int height);
 void FreeMatrixGPU(Matrix &M);
 
+void CopyToDeviceMatrix(Matrix Mdevice, const Matrix Mhost);
+void CopyToHostMatrix(Matrix Mhost, const Matrix Mdevice);
 #endif // MATRIX_H

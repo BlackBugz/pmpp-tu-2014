@@ -45,6 +45,33 @@ printCUDADevices()
 	}
 }
 
+void printMatrix(const Matrix m){
+	for(int i = 0; i < m.height; ++i){
+		for(int j = 0; j < m.width; j++){
+			printf("%f ", m.elements[i*m.width+j]);
+		}
+		printf("\n");
+	}
+}
+
+void checkMatrix(const Matrix m){
+	int count = 0;
+	long int c =0;
+	int min = 44444444;
+	for(int i = 0; i < m.height; ++i){
+		for(int j = 0; j < m.width; j++){
+			c +=m.elements[i*m.width+j];
+			if(m.elements[i*m.width+j] != 0){
+				count++;
+			}
+			if(m.elements[i*m.width+j] < min){
+				min = m.elements[i*m.width+j];
+			}
+		}
+	}
+	printf("Sum: %lu - != 0: %i  - min: %i\n", c, count, min);
+}
+
 //----------------------------------------------------------------------------
 int
 main(int argc, char **argv)
@@ -58,37 +85,33 @@ main(int argc, char **argv)
 	Matrix M = AllocateMatrixCPU(width, height, true);
 	Matrix N = AllocateMatrixCPU(height, width, true);
 	Matrix P = AllocateMatrixCPU(height, height, false);
+	Matrix PP = AllocateMatrixCPU(height, height, false);
 
 	// TODO Task 5: Start CPU timing
 
 	// TODO Task 3: Run matrix multiplication on the CPU
 	MatrixMulCPU(M, N, P);
-
-	unsigned long int sum = 0;
-	unsigned long int not0 = 0;
-
-	for(int i =0; i < P.height; ++i){
-		for(int j = 0; j < P.width; ++j){
-			sum += P.elements[i * P.width + j];
-			if(P.elements[i * P.width + j] != 0){
-				not0++;
-			}
-		}
-	}
-
-	printf("The sum is %lu with %lu el not 0\n", sum, not0);
+	checkMatrix(P);
 
 	// TODO Task 5: Stop CPU timing and print elapsed time
 
 	// TODO Task 4: Allocate GPU matrices
+	Matrix MGPU = AllocateMatrixGPU(width, height);
+	Matrix NGPU = AllocateMatrixGPU(height, width);
+	Matrix PGPU = AllocateMatrixGPU(height, height);
 
 	// TODO Task 5: Start GPU timing with CUDA events
 
 	// TODO Task 4: Copy CPU matrices to the GPU
+	CopyToDeviceMatrix(MGPU, M);
+	CopyToDeviceMatrix(NGPU, N);
 
 	// TODO Task 4: Run matrix multiplication on the GPU
+	MatrixMulGPU(MGPU, NGPU, PGPU);
 
 	// TODO Task 4: Copy GPU results to the CPU
+	CopyToHostMatrix(PP, PGPU);
+	checkMatrix(PP);
 
 	// TODO Task 5: Stop GPU timing with CUDA events and print elapsed time
 
@@ -98,6 +121,10 @@ main(int argc, char **argv)
 	FreeMatrixCPU(M);
 	FreeMatrixCPU(N);
 	FreeMatrixCPU(P);
+
+	FreeMatrixGPU(MGPU);
+	FreeMatrixGPU(NGPU);
+	FreeMatrixGPU(PGPU);
 
 	return EXIT_SUCCESS;
 }
