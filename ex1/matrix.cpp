@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <math.h>
 
 #include <cuda_runtime.h>
 
@@ -60,7 +61,7 @@ Matrix AllocateMatrixGPU(int width, int height)
 	Mdevice.width = width;
 	Mdevice.height = height;
 
-	CUDA_SUCCEEDED(cudaMallocPitch((void**)&Mdevice.elements,&Mdevice.pitch, Mdevice.width, Mdevice.height));
+	CUDA_SUCCEEDED(cudaMallocPitch((void**)&Mdevice.elements,&Mdevice.pitch, Mdevice.width*sizeof(float), Mdevice.height));
 
 	return Mdevice;
 }
@@ -82,7 +83,7 @@ void FreeMatrixGPU(Matrix &M)
 void CopyToDeviceMatrix(Matrix Mdevice, const Matrix Mhost)
 {
 	int size = Mhost.width * Mhost.height * sizeof(float);
-	CUDA_SUCCEEDED(cudaMemcpy(Mdevice.elements, Mhost.elements, size, cudaMemcpyHostToDevice));
+	CUDA_SUCCEEDED(cudaMemcpy2D(Mdevice.elements, Mdevice.pitch, Mhost.elements, Mhost.pitch, Mhost.width*sizeof(float), Mhost.height, cudaMemcpyHostToDevice));
 }
 
 /** \brief Copy a device matrix to a host matrix
@@ -92,7 +93,7 @@ void CopyToDeviceMatrix(Matrix Mdevice, const Matrix Mhost)
 void CopyToHostMatrix(Matrix Mhost, const Matrix Mdevice)
 {
 	int size = Mdevice.width * Mdevice.height * sizeof(float);
-	CUDA_SUCCEEDED(cudaMemcpy(Mhost.elements, Mdevice.elements, size, cudaMemcpyDeviceToHost));
+	CUDA_SUCCEEDED(cudaMemcpy2D(Mhost.elements, Mhost.pitch, Mdevice.elements, Mdevice.pitch, Mdevice.width*sizeof(float), Mdevice.height, cudaMemcpyDeviceToHost));
 }
 
 //----------------------------------------------------------------------------
@@ -102,12 +103,10 @@ void CopyToHostMatrix(Matrix Mhost, const Matrix Mdevice)
  */
 void printMatrix(const Matrix m)
 {
-	for(int i = 0; i < m.height; ++i){
-		for(int j = 0; j < m.width; j++){
-			printf("%f ", m.elements[i*m.width+j]);
+	int a = (m.height < m.width) ? m.height : m.width;
+	for(int i = 0; i < a; ++i){
+			printf("%f ", m.elements[i*m.width + i]);
 		}
-		printf("\n");
-	}
 }
 
 /**	\brief Checks if the matrix is empty
@@ -120,12 +119,12 @@ void checkMatrix(const Matrix m)
 	int min = 44444444;
 	for(int i = 0; i < m.height; ++i){
 		for(int j = 0; j < m.width; j++){
-			c +=m.elements[i*m.width+j];
-			if(m.elements[i*m.width+j] != 0){
+			c +=m.elements[i*m.pitch/sizeof(float)+j];
+			if(m.elements[i*m.pitch/sizeof(float)+j] != 0){
 				count++;
 			}
-			if(m.elements[i*m.width+j] < min){
-				min = m.elements[i*m.width+j];
+			if(m.elements[i*m.pitch/sizeof(float)+j] < min){
+				min = m.elements[i*m.pitch/sizeof(float)+j];
 			}
 		}
 	}
@@ -143,9 +142,9 @@ void compareMatrix(Matrix M1, Matrix M2)
 		double maxDiff = diff, minDiff = diff, avg = 0;
 
 		for(int i = 0; i < M1.height; ++i){
-			for (j = 0; j < M1.width; ++j) {
-				diff = fabs(M1.elements[i * M1.pitch + j] - M2.elements[i * M2.pitch + j]);
-				maxDiff = (diff > maxDiff) ? diff : MaxDiff;
+			for (int j = 0; j < M1.width; ++j) {
+				diff = fabs(M1.elements[i * M1.pitch/sizeof(float) + j] - M2.elements[i * M2.pitch/sizeof(float) + j]);
+				maxDiff = (diff > maxDiff) ? diff : maxDiff;
 				minDiff = (diff < minDiff) ? diff : minDiff;
 				avg += diff;
 			}
@@ -153,7 +152,6 @@ void compareMatrix(Matrix M1, Matrix M2)
 
 		avg = avg / (M1.width * M1.height);
 
-		printf("Pitch > CPU: %i | GPU %i", M1.pitch, M2.pitch);
 
 		printf("Max difference: %f\n", maxDiff);
 		printf("Min difference: %f\n", minDiff);
@@ -171,8 +169,8 @@ void compareMatrix(Matrix M1, Matrix M2)
 void initIdentityMatrix(Matrix M)
 {
 	for(int i = 0; i < M.height; ++i){
-		for (j = 0; j < M.width; ++j) {
-			M.elements[i * M.pitch + j] = (i == j) ? 1.0 : 0;
+		for (int j = 0; j < M.width; ++j) {
+			M.elements[i * M.width + j] = (i == j) ? float(1) : float(0);
 		}
 	}
 }

@@ -19,4 +19,10 @@ void FreeMatrixGPU(Matrix &M);
 
 void CopyToDeviceMatrix(Matrix Mdevice, const Matrix Mhost);
 void CopyToHostMatrix(Matrix Mhost, const Matrix Mdevice);
+
+void checkMatrix(const Matrix m);
+void compareMatrix(Matrix M1, Matrix M2);
+
+void initIdentityMatrix(Matrix M);
+void printMatrix(Matrix M);
 #endif // MATRIX_H
