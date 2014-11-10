@@ -55,14 +55,15 @@ __global__ void ConvolveHGPUSMem(unsigned int *dst, const unsigned int *src, con
 
 	// copying the elements needed by the kernel, on the left side of the
 	// submatrix we are considering
-	if(tx < halfKernel){
-		for(int i = 0; i*blockDim.x < left; i ++){
+	if(tx < left){
+		for(int i = 0; i*blockDim.x + tx < left; i ++){
 			//sharedSrc[ty][col-left+i*blockDim.x] = src[row * w + col-left+i*blockDim.x];
+			sharedSrc[ty * (blockDim.x+2*halfKernel) +  ] = src[row * w + col-left+i*blockDim.x];
 		}
 	}
 
-	if(tx < halfKernel){
-		for(int i = 0; i*blockDim.x  < right; i++){
+	if(tx > blockDim.x-right){
+		for(int i = 1; i*blockDim.x + tx < right; i++){
 			//sharedSrc[ty][col+i*blockDim.x] = src[row * w + col+i*blockDim.x];
 		}
 	}

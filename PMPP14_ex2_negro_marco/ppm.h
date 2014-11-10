@@ -28,7 +28,9 @@ struct PPMImage
 
 	~PPMImage()
 	{
-		delete[] data;
+		if(data != NULL){
+			delete[] data;
+		}
 	}
 
 	PPMImage& operator=(PPMImage other)

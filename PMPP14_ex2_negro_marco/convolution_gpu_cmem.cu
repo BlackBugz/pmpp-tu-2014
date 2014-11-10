@@ -63,8 +63,8 @@ __global__ void ConvolveHGPUCMem(unsigned int *dst, const unsigned int *src, int
 	unsigned char finalBlue_uc = roundf(finalBlue);
 
 	unsigned int finalPixel = finalRed_uc
-		| (finalGreen_uc << 8)
-		| (finalBlue_uc << 16);
+			| (finalGreen_uc << 8)
+			| (finalBlue_uc << 16);
 	dst[row * w + col] = finalPixel;
 
 
@@ -109,8 +109,8 @@ __global__ void ConvolveVGPUCMem(unsigned int *dst, const unsigned int *src, int
 	unsigned char finalBlue_uc = roundf(finalBlue);
 
 	unsigned int finalPixel = finalRed_uc
-		| (finalGreen_uc << 8)
-		| (finalBlue_uc << 16);
+			| (finalGreen_uc << 8)
+			| (finalBlue_uc << 16);
 	dst[row * w + col] = finalPixel;
 }
 
@@ -125,13 +125,13 @@ void ApplyFilterGPUCMem(PPMImage &destImg, PPMImage &srcImg, const float  * kern
 	ConvolveHGPUCMem<<<dimGrid, dimBlock>>>(destImg.data, srcImg.data, kernelSize, srcImg.width, srcImg.height);
 
 
-	  cudaError_t error = cudaGetLastError();
-	  if(error != cudaSuccess)
-	  {
-	    // print the CUDA error message and exit
-	    printf("CUDA error: %s\n", cudaGetErrorString(error));
-	    exit(-1);
-	  }
+	cudaError_t error = cudaGetLastError();
+	if(error != cudaSuccess)
+	{
+		// print the CUDA error message and exit
+		printf("CUDA error: %s\n", cudaGetErrorString(error));
+		exit(-1);
+	}
 
 
 	unsigned int * bk;
@@ -141,13 +141,13 @@ void ApplyFilterGPUCMem(PPMImage &destImg, PPMImage &srcImg, const float  * kern
 	ConvolveVGPUCMem<<<dimGrid, dimBlock>>>(destImg.data, srcImg.data, kernelSize, srcImg.width, srcImg.height);
 
 
-	  error = cudaGetLastError();
-	  if(error != cudaSuccess)
-	  {
-	    // print the CUDA error message and exit
-	    printf("CUDA error: %s\n", cudaGetErrorString(error));
-	    exit(-1);
-	  }
+	error = cudaGetLastError();
+	if(error != cudaSuccess)
+	{
+		// print the CUDA error message and exit
+		printf("CUDA error: %s\n", cudaGetErrorString(error));
+		exit(-1);
+	}
 
 
 	printf("done\n");

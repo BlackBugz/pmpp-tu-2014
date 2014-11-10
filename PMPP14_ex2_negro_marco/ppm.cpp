@@ -135,6 +135,7 @@ PPMImage AllocateImageGPU(int width, int height)
 void FreeImageGPU(PPMImage &I)
 {
 	CUDA_SUCCEEDED(cudaFree(I.data));
+	I.data = NULL;
 }
 
 void CopyToDeviceImage(PPMImage &Idevice, const PPMImage &Ihost)

@@ -65,7 +65,8 @@ __global__ void ConvolveHGPUGMem(unsigned int *dst, const unsigned int *src, con
 
 }
 
-__global__ void ConvolveVGPUGMem(unsigned int *dst, const unsigned int *src, const float *kernel, int kernelSize, int w, int h){
+__global__ void ConvolveVGPUGMem(unsigned int *dst, const unsigned int *src, const float *kernel, int kernelSize, int w, int h)
+{
 
 	int bx = blockIdx.x;
 	int by = blockIdx.y;

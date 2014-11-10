@@ -23,7 +23,7 @@
 					<folderInfo id="com.nvidia.cuda.ide.toolchain.base.608819961.307559084" name="/" resourcePath="">
 						<toolChain id="com.nvidia.cuda.ide.toolchain.base.33390840" name="com.nvidia.cuda.ide.toolchain.base" superClass="com.nvidia.cuda.ide.toolchain.base">
 							<targetPlatform archList="all" binaryParser="com.nvidia.cuda.ide.elf;com.nvidia.cuda.ide.macho;com.nvidia.cuda.ide.cubin" id="com.nvidia.cuda.ide.targetPlatform.393606400" isAbstract="false" name="Debug Platform" osList="linux,macosx" superClass="com.nvidia.cuda.ide.targetPlatform"/>
-							<builder id="com.nvidia.cuda.ide.builder.858459742" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="CUDA Toolkit 5.5 Builder" superClass="com.nvidia.cuda.ide.builder"/>
+							<builder buildPath="${workspace_loc:/PPMP14_ex2_negro_marco/build}" command="make" id="com.nvidia.cuda.ide.builder.858459742" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="CUDA Toolkit 5.0 Builder" superClass="com.nvidia.cuda.ide.builder"/>
 							<tool id="nvcc.compiler.base.154366868" name="NVCC Compiler" superClass="nvcc.compiler.base">
 								<option id="nvcc.compiler.pic.1443196591" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
 								<inputType id="nvcc.compiler.input.cu.2136671307" superClass="nvcc.compiler.input.cu"/>
@@ -52,10 +52,8 @@
 		<project id="PPMP14_ex2_negro_marco.null.272126434" name="PPMP14_ex2_negro_marco"/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
-	<storageModule moduleId="refreshScope" versionNumber="2">
-		<configuration configurationName="Default">
-			<resource resourceType="PROJECT" workspacePath="/PPMP14_ex2_negro_marco"/>
-		</configuration>
+	<storageModule moduleId="refreshScope" versionNumber="1">
+		<resource resourceType="PROJECT" workspacePath="/PPMP14_ex2_negro_marco"/>
 	</storageModule>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>

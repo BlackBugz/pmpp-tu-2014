@@ -6,8 +6,35 @@
 #include "convolution_gpu_gmem.h"
 #include "convolution_gpu_cmem.h"
 #include "convolution_gpu_smem.h"
+#include "convolution_gpu_tmem.h"
 #include "ppm.h"
 #include "timer.h"
+
+
+void printCUDADevices()
+{
+	// TODO: Task 2
+
+	int deviceCount = 0;
+	cudaGetDeviceCount(&deviceCount);
+	printf("You have %i devices\n", deviceCount);
+	for(int i = 0; i < deviceCount; ++i){
+		printf("Prop of device %i:\n",i);
+		printf("---------------------\n");
+
+		cudaDeviceProp prop;
+
+		cudaGetDeviceProperties(&prop, i);
+
+		printf("Name:\t%s\n", prop.name);
+		printf("Compute capability:\t%i.%i\n", prop.major, prop.minor);
+		printf("Multiprocessors count:\t%i\n", prop.multiProcessorCount);
+		printf("GPU clock rate:\t%i KHz\n", prop.clockRate);
+		printf("Total global memory:\t%lu bytes\n", prop.totalGlobalMem);
+		printf("L2 cache size:\t%i bytes\n", prop.l2CacheSize);
+		printf("\n");
+	}
+}
 
 int
 main(int argc, char **argv)
@@ -16,6 +43,8 @@ main(int argc, char **argv)
 		printf("Wrong number of arguments\n");
 		return EXIT_FAILURE;
 	}
+
+	printCUDADevices();
 
 	char * inFileName = argv[1];
 	int kernelSize = atoi(argv[2]);
@@ -59,12 +88,13 @@ main(int argc, char **argv)
 	// TODO Task 2: Blur image on GPU (Global memory)
 	
 	// initializing data for GPU (global memory) computation
+
+
 	printf("Starting GPU on global memory\n");
 	PPMImage srcGPUG = AllocateImageGPU(original.width, original.height);
 	PPMImage destGPUG = AllocateImageGPU(original.width, original.height);
 	CopyToDeviceImage(srcGPUG, original);
 
-	// perform computation on GPU
 	ApplyFilterGPUGMem(destGPUG, srcGPUG, filterGPU, kernelSize);
 
 	PPMImage destImgG = PPMImage(original.width, original.height);
@@ -82,7 +112,6 @@ main(int argc, char **argv)
 	PPMImage destGPUC = AllocateImageGPU(original.width, original.height);
 	CopyToDeviceImage(srcGPUC, original);
 
-	// perform computation on GPU
 	ApplyFilterGPUCMem(destGPUC, srcGPUC, filter, kernelSize);
 
 	PPMImage destImgC = PPMImage(original.width, original.height);
@@ -91,8 +120,24 @@ main(int argc, char **argv)
 
 	FreeImageGPU(srcGPUC);
 	FreeImageGPU(destGPUC);
+	printf("Done GPU with constant memory\n");
 	
+
 	// TODO Task 5: Blur image on GPU (L1/texture cache)
+	printf("Starting GPU on texture memory\n");
+	PPMImage srcGPUT = AllocateImageGPU(original.width, original.height);
+	PPMImage destGPUT = AllocateImageGPU(original.width, original.height);
+	CopyToDeviceImage(srcGPUT, original);
+
+	ApplyFilterGPUTMem(destGPUT, srcGPUT, filterGPU, kernelSize);
+
+	PPMImage destImgT = PPMImage(original.width, original.height);
+	CopyToHostImage(destImgT, destGPUT);
+	destImgT.saveBin("out_gpu_tmem.ppm");
+
+	FreeImageGPU(srcGPUT);
+	FreeImageGPU(destGPUT);
+	printf("Done GPU with texture memory\n");
 	
 	// TODO Task 6: Blur image on GPU (all memory types)
 
