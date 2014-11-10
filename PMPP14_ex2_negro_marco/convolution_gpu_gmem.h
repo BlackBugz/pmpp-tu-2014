@@ -8,6 +8,8 @@
 #ifndef CONVOLUTION_GPU_GMEM_H_
 #define CONVOLUTION_GPU_GMEM_H_
 
+#include "ppm.h"
+
 void ApplyFilterGPUGMem(PPMImage &srcImg, PPMImage &destImg, const float * kernel, unsigned int kernelSize);
 
 #endif /* CONVOLUTION_GPU_GMEM_H_ */

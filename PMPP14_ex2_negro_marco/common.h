@@ -6,6 +6,11 @@
 
 #include <cuda_runtime.h>
 
+#define TYPESIZE sizeof(unsigned int)
+
+#define MAX(x, y) (x >= y) ? x : y
+#define MIN(x, y) (x <= y) ? x : y
+
 //----------------------------------------------------------------------------
 #define CUDA_SUCCEEDED(call)										\
 {																	\
@@ -29,5 +34,9 @@ divUp(unsigned int dividend, unsigned int divisor)
 
 //----------------------------------------------------------------------------
 void initKernelGaussian1D(float *kernel, unsigned int kernelSize);
+
+float * AllocateGaussianGPU(unsigned int kernelSize);
+void CopyGaussianToDevice(float * Ghost, float * Gdevice, unsigned int kerneSize);
+void FreeGaussianGPU(float * G);
 
 #endif // COMMON_H

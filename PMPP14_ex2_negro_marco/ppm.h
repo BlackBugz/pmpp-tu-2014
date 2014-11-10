@@ -48,4 +48,10 @@ struct PPMImage
 	unsigned int *data;
 };
 
+PPMImage AllocateImageGPU(int width, int height);
+void FreeImageGPU(PPMImage &I);
+
+void CopyToDeviceImage(PPMImage Ihost, PPMImage Idevice);
+void CopyToHostImage(PPMImage Idevice, PPMImage Ihost);
+
 #endif // PPM_H

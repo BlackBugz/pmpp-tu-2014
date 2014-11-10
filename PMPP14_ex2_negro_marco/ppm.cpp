@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include "ppm.h"
+#include "common.h"
 
 bool
 PPMImage::loadBin(const char *fn)
@@ -115,3 +116,35 @@ PPMImage::saveBin(const char *fn) const
 	return true;
 }
 
+/*
+ * Methods to handle images on the GPU and to copy data.
+ */
+
+PPMImage AllocateImageGPU(int width, int height)
+{
+	PPMImage Idevice;
+	Idevice.width = width;
+	Idevice.height = height;
+
+	int size = width*height*TYPESIZE;
+	CUDA_SUCCEEDED(cudaMalloc(&Idevice.data, size));
+
+	return Idevice;
+}
+
+void FreeImageGPU(PPMImage &I)
+{
+	CUDA_SUCCEEDED(cudaFree(I.data));
+}
+
+void CopyToDeviceImage(PPMImage Ihost, PPMImage Idevice)
+{
+	int size = Ihost.width * Ihost.height * TYPESIZE;
+	CUDA_SUCCEEDED(cudaMemcpy(Idevice.data, Ihost.data, size, cudaMemcpyHostToDevice));
+}
+
+void CopyToHostImage(PPMImage Idevice, PPMImage Ihost)
+{
+	int size = Idevice.width * Idevice.height * TYPESIZE;
+	CUDA_SUCCEEDED(cudaMemcpy(Ihost.data, Idevice.data, size, cudaMemcpyDeviceToHost));
+}

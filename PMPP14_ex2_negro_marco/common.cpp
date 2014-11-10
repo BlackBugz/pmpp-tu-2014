@@ -30,3 +30,20 @@ initKernelGaussian1D(float *kernel, unsigned int kernelSize)
 	}
 }
 
+float * AllocateGaussianGPU(unsigned int kernelSize)
+{
+	float * gaussian;
+	CUDA_SUCCEEDED(cudaMalloc(&gaussian, kernelSize*sizeof(float)));
+	return gaussian;
+}
+
+void CopyGaussianToDevice(float * Ghost, float * Gdevice, unsigned int kerneSize)
+{
+	int size = kerneSize * sizeof(float);
+	CUDA_SUCCEEDED(cudaMemcpy(Gdevice, Ghost, size, cudaMemcpyHostToDevice));
+}
+
+void FreeGaussianGPU(float * G)
+{
+	CUDA_SUCCEEDED(cudaFree(G));
+}
