@@ -16,9 +16,14 @@
 #include "common.h"
 #include "ppm.h"
 
+#include "convolution_gpu_cmem.h"
+
 #define BLOCK_SIZE 32
 
-__global__ void ConvolveHGPUGMem(unsigned int *dst, const unsigned int *src, const float *kernel, int kernelSize, int w, int h)
+__constant__ float constKernel[129];
+
+
+__global__ void ConvolveHGPUCMem(unsigned int *dst, const unsigned int *src, int kernelSize, int w, int h)
 {
 
 	int bx = blockIdx.x;
@@ -48,9 +53,9 @@ __global__ void ConvolveHGPUGMem(unsigned int *dst, const unsigned int *src, con
 		unsigned char g = (pixel & 0x0000ff00) >> 8;
 		unsigned char b = (pixel & 0x00ff0000) >> 16;
 
-		finalRed   += r * kernel[i];
-		finalGreen += g * kernel[i];
-		finalBlue  += b * kernel[i];
+		finalRed   += r * constKernel[i];
+		finalGreen += g * constKernel[i];
+		finalBlue  += b * constKernel[i];
 	}
 
 	unsigned char finalRed_uc = roundf(finalRed);
@@ -65,7 +70,7 @@ __global__ void ConvolveHGPUGMem(unsigned int *dst, const unsigned int *src, con
 
 }
 
-__global__ void ConvolveVGPUGMem(unsigned int *dst, const unsigned int *src, const float *kernel, int kernelSize, int w, int h){
+__global__ void ConvolveVGPUCMem(unsigned int *dst, const unsigned int *src, int kernelSize, int w, int h){
 
 	int bx = blockIdx.x;
 	int by = blockIdx.y;
@@ -94,9 +99,9 @@ __global__ void ConvolveVGPUGMem(unsigned int *dst, const unsigned int *src, con
 		unsigned char g = (pixel & 0x0000ff00) >> 8;
 		unsigned char b = (pixel & 0x00ff0000) >> 16;
 
-		finalRed   += r * kernel[i];
-		finalGreen += g * kernel[i];
-		finalBlue  += b * kernel[i];
+		finalRed   += r * constKernel[i];
+		finalGreen += g * constKernel[i];
+		finalBlue  += b * constKernel[i];
 	}
 
 	unsigned char finalRed_uc = roundf(finalRed);
@@ -110,12 +115,14 @@ __global__ void ConvolveVGPUGMem(unsigned int *dst, const unsigned int *src, con
 }
 
 
-void ApplyFilterGPUGMem(PPMImage &destImg, PPMImage &srcImg, const float * kernel, unsigned int kernelSize)
+void ApplyFilterGPUCMem(PPMImage &destImg, PPMImage &srcImg, const float  * kernel, unsigned int kernelSize)
 {
 	dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 dimGrid(divUp(srcImg.width,BLOCK_SIZE),divUp(srcImg.height,BLOCK_SIZE));
 
-	ConvolveHGPUGMem<<<dimGrid, dimBlock>>>(destImg.data, srcImg.data, kernel, kernelSize, srcImg.width, srcImg.height);
+	CUDA_SUCCEEDED(cudaMemcpyToSymbol(constKernel, kernel, sizeof(float)*kernelSize));
+
+	ConvolveHGPUCMem<<<dimGrid, dimBlock>>>(destImg.data, srcImg.data, kernelSize, srcImg.width, srcImg.height);
 
 
 	  cudaError_t error = cudaGetLastError();
@@ -131,7 +138,7 @@ void ApplyFilterGPUGMem(PPMImage &destImg, PPMImage &srcImg, const float * kerne
 	bk = srcImg.data;
 	srcImg.data = destImg.data;
 	destImg.data =bk;
-	ConvolveVGPUGMem<<<dimGrid, dimBlock>>>(destImg.data, srcImg.data, kernel, kernelSize, srcImg.width, srcImg.height);
+	ConvolveVGPUCMem<<<dimGrid, dimBlock>>>(destImg.data, srcImg.data, kernelSize, srcImg.width, srcImg.height);
 
 
 	  error = cudaGetLastError();

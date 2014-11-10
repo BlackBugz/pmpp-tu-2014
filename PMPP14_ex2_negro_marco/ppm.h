@@ -51,7 +51,7 @@ struct PPMImage
 PPMImage AllocateImageGPU(int width, int height);
 void FreeImageGPU(PPMImage &I);
 
-void CopyToDeviceImage(PPMImage Ihost, PPMImage Idevice);
-void CopyToHostImage(PPMImage Idevice, PPMImage Ihost);
+void CopyToDeviceImage(PPMImage &Idevice, const PPMImage &Ihost);
+void CopyToHostImage(PPMImage &Ihost, const PPMImage &Idevice);
 
 #endif // PPM_H

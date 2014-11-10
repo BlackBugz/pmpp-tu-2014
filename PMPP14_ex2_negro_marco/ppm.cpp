@@ -126,7 +126,7 @@ PPMImage AllocateImageGPU(int width, int height)
 	Idevice.width = width;
 	Idevice.height = height;
 
-	int size = width*height*TYPESIZE;
+	int size = width*height*sizeof(unsigned int);
 	CUDA_SUCCEEDED(cudaMalloc(&Idevice.data, size));
 
 	return Idevice;
@@ -137,14 +137,14 @@ void FreeImageGPU(PPMImage &I)
 	CUDA_SUCCEEDED(cudaFree(I.data));
 }
 
-void CopyToDeviceImage(PPMImage Ihost, PPMImage Idevice)
+void CopyToDeviceImage(PPMImage &Idevice, const PPMImage &Ihost)
 {
-	int size = Ihost.width * Ihost.height * TYPESIZE;
+	unsigned int size = Ihost.width * Ihost.height * sizeof(unsigned int);
 	CUDA_SUCCEEDED(cudaMemcpy(Idevice.data, Ihost.data, size, cudaMemcpyHostToDevice));
 }
 
-void CopyToHostImage(PPMImage Idevice, PPMImage Ihost)
+void CopyToHostImage(PPMImage &Ihost, const PPMImage &Idevice)
 {
-	int size = Idevice.width * Idevice.height * TYPESIZE;
+	int size = Idevice.width * Idevice.height * sizeof(unsigned int);
 	CUDA_SUCCEEDED(cudaMemcpy(Ihost.data, Idevice.data, size, cudaMemcpyDeviceToHost));
 }

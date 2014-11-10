@@ -10,6 +10,6 @@
 
 #include "ppm.h"
 
-void ApplyFilterGPUGMem(PPMImage &srcImg, PPMImage &destImg, const float * kernel, unsigned int kernelSize);
+void ApplyFilterGPUGMem(PPMImage &destImg, PPMImage &srcImg, const float * kernel, unsigned int kernelSize);
 
 #endif /* CONVOLUTION_GPU_GMEM_H_ */

@@ -154,7 +154,22 @@ void ApplyFilterGPUSMem(PPMImage &srcImg, PPMImage &destImg, const float * kerne
 
 	ConvolveHGPUSMem<<<dimGrid, dimBlock, kernelSize * srcImg.width>>>(destImg.data, srcImg.data, kernel, kernelSize, srcImg.width, srcImg.height);
 
+	  cudaError_t error = cudaGetLastError();
+	  if(error != cudaSuccess)
+	  {
+	    // print the CUDA error message and exit
+	    printf("CUDA error: %s\n", cudaGetErrorString(error));
+	  }
+
+
 	srcImg = destImg;
 
 	ConvolveVGPUSMem<<<dimGrid, dimBlock, kernelSize * srcImg.width>>>(destImg.data, srcImg.data, kernel, kernelSize, srcImg.width, srcImg.height);
+	  error = cudaGetLastError();
+	  if(error != cudaSuccess)
+	  {
+	    // print the CUDA error message and exit
+	    printf("CUDA error: %s\n", cudaGetErrorString(error));
+	  }
+
 }

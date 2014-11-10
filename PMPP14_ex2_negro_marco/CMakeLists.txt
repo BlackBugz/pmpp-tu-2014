@@ -11,5 +11,6 @@ cuda_add_executable(gaussFilter
 	convolution_cpu.cpp
 	convolution_gpu_gmem.cu
 	convolution_gpu_smem.cu
+	convolution_gpu_cmem.cu
 	common.cpp
 	ppm.cpp)
