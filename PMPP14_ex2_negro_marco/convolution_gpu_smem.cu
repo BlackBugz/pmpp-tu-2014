@@ -45,7 +45,8 @@ __global__ void ConvolveHGPUSMem(unsigned int *dst, const unsigned int *src, con
 	}
 
 	int left = col - MAX(0, col - halfKernel);
-	int right = col + MIN(w, col + halfKernel);
+	int right = col + MIN(w-1, col + halfKernel);
+	int shrW = blockDim.x+2*halfKernel;
 
 	// left and right needs to add more space before and after the bloock to
 	// have enough room also for the columns used by the kernel
@@ -55,16 +56,15 @@ __global__ void ConvolveHGPUSMem(unsigned int *dst, const unsigned int *src, con
 
 	// copying the elements needed by the kernel, on the left side of the
 	// submatrix we are considering
-	if(tx < left){
-		for(int i = 0; i*blockDim.x + tx < left; i ++){
-			//sharedSrc[ty][col-left+i*blockDim.x] = src[row * w + col-left+i*blockDim.x];
-			sharedSrc[ty * (blockDim.x+2*halfKernel) +  ] = src[row * w + col-left+i*blockDim.x];
+	if(tx > blockDim.x - left - 1){
+		for(int i = 1; i*blockDim.x - tx < left; i ++){
+			sharedSrc[ty * shrW +  left + tx - i*blockDim.x] = src[row * w + col-i*blockDim.x];
 		}
 	}
 
-	if(tx > blockDim.x-right){
-		for(int i = 1; i*blockDim.x + tx < right; i++){
-			//sharedSrc[ty][col+i*blockDim.x] = src[row * w + col+i*blockDim.x];
+	if(tx < right){
+		for(int i = 1; (i-1)*blockDim.x + tx < right; i++){
+			sharedSrc[ty * shrW +  left + tx + i*blockDim.x] = src[row * w + col+i*blockDim.x];
 		}
 	}
 
@@ -80,7 +80,7 @@ __global__ void ConvolveHGPUSMem(unsigned int *dst, const unsigned int *src, con
 		px = MIN(px, w-1);
 		px = MAX(px, 0);
 
-		unsigned int pixel = 1 ;//sharedSrc[ty][px];
+		unsigned int pixel = sharedSrc[ty * shrW + px];
 
 		unsigned char r = pixel & 0x000000ff;
 		unsigned char g = (pixel & 0x0000ff00) >> 8;
@@ -117,6 +117,42 @@ __global__ void ConvolveVGPUSMem(unsigned int *dst, const unsigned int *src, con
 	float finalRed = 0.0f;
 	float finalGreen = 0.0f;
 	float finalBlue = 0.0f;
+
+	int halfKernel = kernelSize / 2;
+
+	int threadId = ty * blockDim.x + tx;
+
+	float * sharedKernel = buffer;
+
+	// loading the kernel in the shared memory
+	if(threadId < kernelSize){
+		for(int i = threadId; i < kernelSize; i += blockDim.y+blockDim.x){
+			sharedKernel[i] = kernel[i];
+		}
+	}
+
+	int up = row - MAX(0, col - halfKernel);
+	int down = row + MIN(h-1, col + halfKernel);
+
+	// left and right needs to add more space before and after the bloock to
+	// have enough room also for the columns used by the kernel
+	unsigned int * sharedSrc = (unsigned int *)&buffer[kernelSize];
+
+	sharedSrc[(ty + halfKernel) * blockDim.x + tx] = src[row * w + col];
+
+	// copying the elements needed by the kernel, on the left side of the
+	// submatrix we are considering
+	if(ty > blockDim.y - up - 1){
+		for(int i = 1; i*blockDim.y - ty < up; i ++){
+			sharedSrc[(ty + halfKernel - i*blockDim.y ) * blockDim.x + tx] = src[(row - i*blockDim.y) * w + col];
+		}
+	}
+
+	if(ty < down){
+		for(int i = 1; (i-1)*blockDim.y + tx < right; i++){
+			sharedSrc[(ty + halfKernel + i*blockDim.y) * blockDim.x + tx] = src[(row + i*blockDim.y) * w + col];
+		}
+	}
 
 	for (int i = 0; i < kernelSize; i++)
 	{
