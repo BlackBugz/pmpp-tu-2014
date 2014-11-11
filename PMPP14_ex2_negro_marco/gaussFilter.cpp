@@ -7,6 +7,7 @@
 #include "convolution_gpu_cmem.h"
 #include "convolution_gpu_smem.h"
 #include "convolution_gpu_tmem.h"
+#include "convolution_gpu_final.h"
 #include "ppm.h"
 #include "timer.h"
 
@@ -70,26 +71,20 @@ main(int argc, char **argv)
 	CopyGaussianToDevice(filter, filterGPU, kernelSize);
 
 	// TODO Task 1: Blur image on CPU
-
-	// initializing data for CPU computation
+	/*
+	printf("Starting CPU\n");
 	PPMImage srcImg = PPMImage(original);
 	PPMImage destImg = PPMImage(srcImg.width, srcImg.height);
 
-	// performing CPU computation
 	convolveHCPU(destImg.data, srcImg.data, filter, kernelSize, srcImg.width, srcImg.height);
 	srcImg = destImg;
 	convolveVCPU(destImg.data, srcImg.data, filter, kernelSize, srcImg.width, srcImg.height);
 
-	// saving CPU task results and freeing memory
-	printf("Done. Saving result in out_cpu.ppm\n");
 	destImg.saveBin("out_cpu.ppm");
+	printf("Done CPU\n");*/
 
 
 	// TODO Task 2: Blur image on GPU (Global memory)
-	
-	// initializing data for GPU (global memory) computation
-
-
 	printf("Starting GPU on global memory\n");
 	PPMImage srcGPUG = AllocateImageGPU(original.width, original.height);
 	PPMImage destGPUG = AllocateImageGPU(original.width, original.height);
@@ -103,8 +98,23 @@ main(int argc, char **argv)
 
 	FreeImageGPU(srcGPUG);
 	FreeImageGPU(destGPUG);
+	printf("Done GPU on global memory\n");
 
 	// TODO Task 3: Blur image on GPU (Shared memory)
+	printf("Starting GPU on shared memory\n");
+	PPMImage srcGPUS = AllocateImageGPU(original.width, original.height);
+	PPMImage destGPUS = AllocateImageGPU(original.width, original.height);
+	CopyToDeviceImage(srcGPUS, original);
+
+	ApplyFilterGPUGMem(destGPUS, srcGPUS, filterGPU, kernelSize);
+
+	PPMImage destImgS = PPMImage(original.width, original.height);
+	CopyToHostImage(destImgS, destGPUS);
+	destImgS.saveBin("out_gpu_smem.ppm");
+
+	FreeImageGPU(srcGPUS);
+	FreeImageGPU(destGPUS);
+	printf("Done GPU on shared memory\n");
 
 	// TODO Task 4: Blur image on GPU (Constant memory)
 	printf("Starting GPU on constant memory\n");
@@ -140,6 +150,20 @@ main(int argc, char **argv)
 	printf("Done GPU with texture memory\n");
 	
 	// TODO Task 6: Blur image on GPU (all memory types)
+	printf("Starting GPU final\n");
+	PPMImage srcGPUF = AllocateImageGPU(original.width, original.height);
+	PPMImage destGPUF = AllocateImageGPU(original.width, original.height);
+	CopyToDeviceImage(srcGPUF, original);
+	printf("applying\n");
+	ApplyFilterGPUFinal(destGPUF, srcGPUF, filter, kernelSize);
+	printf("done\n");
+	PPMImage destImgF = PPMImage(original.width, original.height);
+	CopyToHostImage(destImgF, destGPUF);
+	destImgT.saveBin("out_gpu_final.ppm");
+	printf("saving\n");
+	FreeImageGPU(srcGPUF);
+	FreeImageGPU(destGPUF);
+	printf("Done GPU final\n");
 
 	FreeGaussianGPU(filterGPU);
 	printf("Finished \n");

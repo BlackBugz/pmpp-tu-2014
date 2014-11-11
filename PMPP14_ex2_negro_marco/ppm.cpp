@@ -147,5 +147,5 @@ void CopyToDeviceImage(PPMImage &Idevice, const PPMImage &Ihost)
 void CopyToHostImage(PPMImage &Ihost, const PPMImage &Idevice)
 {
 	int size = Idevice.width * Idevice.height * sizeof(unsigned int);
-	CUDA_SUCCEEDED(cudaMemcpy(Ihost.data, Idevice.data, size, cudaMemcpyDeviceToHost));
+	CUDA_SUCCEEDED(cudaMemcpyAsync(Ihost.data, Idevice.data, size, cudaMemcpyDeviceToHost));
 }

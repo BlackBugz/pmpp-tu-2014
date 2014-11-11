@@ -22,7 +22,7 @@
 
 texture<unsigned int, cudaTextureType1D, cudaReadModeElementType> texRefImg;
 
-__global__ void ConvolveHGPUTMem(unsigned int *dst, const unsigned int *src, const float *kernel, int kernelSize, int w, int h)
+__global__ void ConvolveHGPUTMem(unsigned int *dst, const float *kernel, int kernelSize, int w, int h)
 {
 
 	int bx = blockIdx.x;
@@ -121,7 +121,7 @@ void ApplyFilterGPUTMem(PPMImage &destImg, PPMImage &srcImg, const float * kerne
 	dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 dimGrid(divUp(srcImg.width,BLOCK_SIZE),divUp(srcImg.height,BLOCK_SIZE));
 
-	ConvolveHGPUTMem<<<dimGrid, dimBlock>>>(destImg.data, srcImg.data, kernel, kernelSize, srcImg.width, srcImg.height);
+	ConvolveHGPUTMem<<<dimGrid, dimBlock>>>(destImg.data, kernel, kernelSize, srcImg.width, srcImg.height);
 
 	cudaError_t error = cudaGetLastError();
 	if(error != cudaSuccess)

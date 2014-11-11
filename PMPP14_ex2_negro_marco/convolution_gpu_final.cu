@@ -18,11 +18,13 @@
 
 #define BLOCK_SIZE 32
 
-extern __shared__ float buffer[];
+__constant__ float constKernelFinal[129];
 
-__global__ void ConvolveHGPUSMem(unsigned int *dst, const unsigned int *src, const float *kernel, int kernelSize, int w, int h)
+texture<unsigned int, cudaTextureType1D, cudaReadModeElementType> texRefImg;
+
+__global__ void ConvolveHGPUFinal(unsigned int *dst, const float * kernel, int kernelSize, int w, int h)
 {
-
+	extern __shared__ unsigned int buffer[];
 	int bx = blockIdx.x;
 	int by = blockIdx.y;
 
@@ -33,38 +35,27 @@ __global__ void ConvolveHGPUSMem(unsigned int *dst, const unsigned int *src, con
 	int col = bx * blockDim.x + tx;
 	int halfKernel = kernelSize / 2;
 
-	int threadId = ty * blockDim.x + tx;
-
-	float * sharedKernel = buffer;
-
-	// loading the kernel in the shared memory
-	if(threadId < kernelSize){
-		for(int i = threadId; i < kernelSize; i += blockDim.y+blockDim.x){
-			sharedKernel[i] = kernel[i];
-		}
-	}
-
 	int left = col - MAX(0, col - halfKernel);
 	int right = col + MIN(w-1, col + halfKernel);
 	int shrW = blockDim.x+2*halfKernel;
 
 	// left and right needs to add more space before and after the bloock to
 	// have enough room also for the columns used by the kernel
-	unsigned int * sharedSrc = (unsigned int *)&buffer[kernelSize];
+	unsigned int * sharedSrc = buffer;
 
-	sharedSrc[ty * (2*halfKernel + blockDim.x) + tx+halfKernel] = src[row * w + col];
+	sharedSrc[ty * (2*halfKernel + blockDim.x) + tx+halfKernel] = tex1Dfetch(texRefImg,row * w + col);
 
 	// copying the elements needed by the kernel, on the left side of the
 	// submatrix we are considering
 	if(tx > blockDim.x - left - 1){
 		for(int i = 1; i*blockDim.x - tx < left; i ++){
-			sharedSrc[ty * shrW +  left + tx - i*blockDim.x] = src[row * w + col-i*blockDim.x];
+			sharedSrc[ty * shrW +  left + tx - i*blockDim.x] = tex1Dfetch(texRefImg,row * w + col-i*blockDim.x);
 		}
 	}
 
 	if(tx < right){
 		for(int i = 1; (i-1)*blockDim.x + tx < right; i++){
-			sharedSrc[ty * shrW +  left + tx + i*blockDim.x] = src[row * w + col+i*blockDim.x];
+			sharedSrc[ty * shrW +  left + tx + i*blockDim.x] = tex1Dfetch(texRefImg,row * w + col+i*blockDim.x);
 		}
 	}
 
@@ -86,9 +77,9 @@ __global__ void ConvolveHGPUSMem(unsigned int *dst, const unsigned int *src, con
 		unsigned char g = (pixel & 0x0000ff00) >> 8;
 		unsigned char b = (pixel & 0x00ff0000) >> 16;
 
-		finalRed   += r * sharedKernel[i];
-		finalGreen += g * sharedKernel[i];
-		finalBlue  += b * sharedKernel[i];
+		finalRed   += r * kernel[i];
+		finalGreen += g * kernel[i];
+		finalBlue  += b * kernel[i];
 	}
 
 	unsigned char finalRed_uc = roundf(finalRed);
@@ -96,15 +87,16 @@ __global__ void ConvolveHGPUSMem(unsigned int *dst, const unsigned int *src, con
 	unsigned char finalBlue_uc = roundf(finalBlue);
 
 	unsigned int finalPixel = finalRed_uc
-		| (finalGreen_uc << 8)
-		| (finalBlue_uc << 16);
+			| (finalGreen_uc << 8)
+			| (finalBlue_uc << 16);
 	dst[row * w + col] = finalPixel;
 
 
 }
 
-__global__ void ConvolveVGPUSMem(unsigned int *dst, const unsigned int *src, const float *kernel, int kernelSize, int w, int h){
+__global__ void ConvolveVGPUFinal(unsigned int *dst, int kernelSize, int w, int h){
 
+	extern __shared__ unsigned int buffer[];
 	int bx = blockIdx.x;
 	int by = blockIdx.y;
 
@@ -120,37 +112,26 @@ __global__ void ConvolveVGPUSMem(unsigned int *dst, const unsigned int *src, con
 
 	int halfKernel = kernelSize / 2;
 
-	int threadId = ty * blockDim.x + tx;
-
-	float * sharedKernel = buffer;
-
-	// loading the kernel in the shared memory
-	if(threadId < kernelSize){
-		for(int i = threadId; i < kernelSize; i += blockDim.y+blockDim.x){
-			sharedKernel[i] = kernel[i];
-		}
-	}
-
 	int up = row - MAX(0, col - halfKernel);
 	int down = row + MIN(h-1, col + halfKernel);
 
 	// left and right needs to add more space before and after the bloock to
 	// have enough room also for the columns used by the kernel
-	unsigned int * sharedSrc = (unsigned int *)&buffer[kernelSize];
+	unsigned int * sharedSrc = buffer;
 
-	sharedSrc[(ty + halfKernel) * blockDim.x + tx] = src[row * w + col];
+	sharedSrc[(ty + halfKernel) * blockDim.x + tx] = tex1Dfetch(texRefImg,row * w + col);
 
 	// copying the elements needed by the kernel, on the left side of the
 	// submatrix we are considering
 	if(ty > blockDim.y - up - 1){
 		for(int i = 1; i*blockDim.y - ty < up; i ++){
-			sharedSrc[(ty + halfKernel - i*blockDim.y ) * blockDim.x + tx] = src[(row - i*blockDim.y) * w + col];
+			sharedSrc[(ty + halfKernel - i*blockDim.y ) * blockDim.x + tx] = tex1Dfetch(texRefImg,(row - i*blockDim.y) * w + col);
 		}
 	}
 
 	if(ty < down){
 		for(int i = 1; (i-1)*blockDim.y + ty < down; i++){
-			sharedSrc[(ty + halfKernel + i*blockDim.y) * blockDim.x + tx] = src[(row + i*blockDim.y) * w + col];
+			sharedSrc[(ty + halfKernel + i*blockDim.y) * blockDim.x + tx] = tex1Dfetch(texRefImg,(row + i*blockDim.y) * w + col);
 		}
 	}
 
@@ -162,15 +143,15 @@ __global__ void ConvolveVGPUSMem(unsigned int *dst, const unsigned int *src, con
 		py = MIN(py, h-1);
 		py = MAX(py, 0);
 
-		unsigned int pixel = src[py * w + col];
+		unsigned int pixel = tex1Dfetch(texRefImg,py * w + col);
 
 		unsigned char r = pixel & 0x000000ff;
 		unsigned char g = (pixel & 0x0000ff00) >> 8;
 		unsigned char b = (pixel & 0x00ff0000) >> 16;
 
-		finalRed   += r * sharedKernel[i];
-		finalGreen += g * sharedKernel[i];
-		finalBlue  += b * sharedKernel[i];
+		finalRed   += r * constKernelFinal[i];
+		finalGreen += g * constKernelFinal[i];
+		finalBlue  += b * constKernelFinal[i];
 	}
 
 	unsigned char finalRed_uc = roundf(finalRed);
@@ -178,35 +159,64 @@ __global__ void ConvolveVGPUSMem(unsigned int *dst, const unsigned int *src, con
 	unsigned char finalBlue_uc = roundf(finalBlue);
 
 	unsigned int finalPixel = finalRed_uc
-		| (finalGreen_uc << 8)
-		| (finalBlue_uc << 16);
+			| (finalGreen_uc << 8)
+			| (finalBlue_uc << 16);
 	dst[row * w + col] = finalPixel;
 }
 
 
-void ApplyFilterGPUSMem(PPMImage &srcImg, PPMImage &destImg, const float * kernel, unsigned int kernelSize)
+void ApplyFilterGPUFinal(PPMImage &srcImg, PPMImage &destImg, const float * kernel, unsigned int kernelSize)
 {
+	CUDA_SUCCEEDED(cudaBindTexture(0, texRefImg, srcImg.data, srcImg.height*srcImg.width*sizeof(unsigned int)));
+	printf("bind done\n");
+	CUDA_SUCCEEDED(cudaMemcpyToSymbol(constKernelFinal, kernel, sizeof(float)*kernelSize));
+	printf("init 1 done\n");
 	dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 dimGrid(divUp(srcImg.width,BLOCK_SIZE),divUp(srcImg.height,BLOCK_SIZE));
 	int halfKernel = kernelSize/2;
-	ConvolveHGPUSMem<<<dimGrid, dimBlock, kernelSize + (srcImg.width + 2*halfKernel)*srcImg.height>>>(destImg.data, srcImg.data, kernel, kernelSize, srcImg.width, srcImg.height);
+	ConvolveHGPUFinal<<<dimGrid, dimBlock, ((srcImg.width + 2*halfKernel)*srcImg.height)>>>(destImg.data, kernel, kernelSize, srcImg.width, srcImg.height);
 
-	  cudaError_t error = cudaGetLastError();
-	  if(error != cudaSuccess)
-	  {
-	    // print the CUDA error message and exit
-	    printf("CUDA error: %s\n", cudaGetErrorString(error));
-	  }
+	printf("comp 1 done\n");
+	cudaError_t error = cudaGetLastError();
+	if(error != cudaSuccess)
+	{
+		// print the CUDA error message and exit
+		printf("CUDA error at  %s:%i : (%i) %s\n",
+				__FILE__, __LINE__, error, cudaGetErrorString(error));
+	}
 
+	error = cudaDeviceSynchronize();
+	if( cudaSuccess != error )
+	{
+		fprintf( stderr, "cudaCheckError() with sync failed at %s:%i : (%i) %s\n",
+				__FILE__, __LINE__, error, cudaGetErrorString( error ) );
+	}
 
-	srcImg = destImg;
+	CUDA_SUCCEEDED(cudaUnbindTexture(texRefImg));
 
-	ConvolveVGPUSMem<<<dimGrid, dimBlock, kernelSize + (srcImg.height + 2*kernelSize)*srcImg.width>>>(destImg.data, srcImg.data, kernel, kernelSize, srcImg.width, srcImg.height);
-	  error = cudaGetLastError();
-	  if(error != cudaSuccess)
-	  {
-	    // print the CUDA error message and exit
-	    printf("CUDA error: %s\n", cudaGetErrorString(error));
-	  }
+	unsigned int * bk;
+	bk = srcImg.data;
+	srcImg.data = destImg.data;
+	destImg.data =bk;
 
+	CUDA_SUCCEEDED(cudaBindTexture(0, texRefImg, srcImg.data, destImg.height*destImg.width*sizeof(unsigned int)));
+
+	printf("bind 2 done\n");
+	ConvolveVGPUFinal<<<dimGrid, dimBlock, ((srcImg.height + 2*kernelSize)*srcImg.width)>>>(destImg.data, kernelSize, srcImg.width, srcImg.height);
+	error = cudaGetLastError();
+	if(error != cudaSuccess)
+	{
+		// print the CUDA error message and exit
+		printf("CUDA error at  %s:%i : %s\n",
+						__FILE__, __LINE__, cudaGetErrorString(error));
+	}
+
+	error = cudaDeviceSynchronize();
+	if( cudaSuccess != error )
+	{
+		fprintf( stderr, "cudaCheckError() with sync failed at %s:%i : %s\n",
+				__FILE__, __LINE__, cudaGetErrorString( error ) );
+	}
+	CUDA_SUCCEEDED(cudaUnbindTexture(texRefImg));
+	printf("compute 2 done\n");
 }
