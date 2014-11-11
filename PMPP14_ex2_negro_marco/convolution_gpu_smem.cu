@@ -188,8 +188,8 @@ void ApplyFilterGPUSMem(PPMImage &srcImg, PPMImage &destImg, const float * kerne
 {
 	dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 dimGrid(divUp(srcImg.width,BLOCK_SIZE),divUp(srcImg.height,BLOCK_SIZE));
-
-	ConvolveHGPUSMem<<<dimGrid, dimBlock, kernelSize * srcImg.width>>>(destImg.data, srcImg.data, kernel, kernelSize, srcImg.width, srcImg.height);
+	int halfKernel = kernelSize/2;
+	ConvolveHGPUSMem<<<dimGrid, dimBlock, kernelSize + (srcImg.width + 2*halfKernel)*srcImg.height>>>(destImg.data, srcImg.data, kernel, kernelSize, srcImg.width, srcImg.height);
 
 	  cudaError_t error = cudaGetLastError();
 	  if(error != cudaSuccess)
@@ -201,7 +201,7 @@ void ApplyFilterGPUSMem(PPMImage &srcImg, PPMImage &destImg, const float * kerne
 
 	srcImg = destImg;
 
-	ConvolveVGPUSMem<<<dimGrid, dimBlock, kernelSize * srcImg.width>>>(destImg.data, srcImg.data, kernel, kernelSize, srcImg.width, srcImg.height);
+	ConvolveVGPUSMem<<<dimGrid, dimBlock, kernelSize + (srcImg.height + 2*kernelSize)*srcImg.width>>>(destImg.data, srcImg.data, kernel, kernelSize, srcImg.width, srcImg.height);
 	  error = cudaGetLastError();
 	  if(error != cudaSuccess)
 	  {
